@@ -34,6 +34,48 @@ exports.initAbsentAttendance = async (req, res) => {
   }
 };
 
+exports.updateAttendanceStatus = async (req, res) => {
+  const { student_id, status, date } = req.body;
+
+  // Validate input
+  if (!student_id || !status || !date) {
+    return res.status(400).json({ error: 'student_id, status, and date are required' });
+  }
+
+  try {
+    // Attempt to update
+    const result = await db.query(
+      `UPDATE attendance
+       SET status = $1
+       WHERE student_id = $2 AND DATE(timestamp) = $3`,
+      [status, student_id, date]
+    );
+
+     if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attendance record not found for the given student and date',
+        student_id,
+        date
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      action: 'updated',
+      student_id,
+      status,
+      date
+    });
+  } catch (error) {
+    console.error('Error updating attendance:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+
+
 
 
 exports.markAttendance = async (req, res) => {

@@ -5,7 +5,8 @@ const {
   initAbsentAttendance,
   markAttendance,
   exportAttendanceCSV,
-  getAttendanceSummary
+  getAttendanceSummary,
+  updateAttendanceStatus 
 } = require('../controllers/attendanceController');
 
 // 📌 1. Initialize Absent Records for Given Date
@@ -23,5 +24,7 @@ router.get('/export', exportAttendanceCSV);
 // 📌 4. Attendance summary per day (present/absent count)
 // GET /api/attendance/summary?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/summary', getAttendanceSummary);
+
+router.put('/update', updateAttendanceStatus);
 
 module.exports = router;

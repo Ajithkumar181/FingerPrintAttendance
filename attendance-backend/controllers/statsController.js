@@ -74,6 +74,33 @@ const getOverview = async (req, res) => {
   }
 };
 
+// GET /api/absentees?date=2025-07-09
+const getTodayAbsentees = async (req, res) => {
+  const { date } = req.query;
+
+  if (!date) {
+    return res.status(400).json({ error: 'Date is required in YYYY-MM-DD format.' });
+  }
+
+  try {
+    const query = `
+      SELECT s.roll_number, s.name, s.class
+      FROM attendance a
+      JOIN students s ON a.student_id = s.student_id
+      WHERE DATE(a.timestamp) = $1
+        AND a.status = 'Absent'
+    `;
+
+    const result = await pool.query(query, [date]);
+
+    return res.status(200).json({ absentees: result.rows });
+  } catch (error) {
+    console.error('Error fetching absentees:', error.message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
 
 
 // 📌 Top Absentees Controller
@@ -176,54 +203,42 @@ const getAttendancePercentage = async (req, res) => {
 
 
 // 📌 Detailed Daily Attendance Trend (with class)
+// 📌 Detailed Daily Attendance Trend (for specific date only)
+// 📌 Detailed Daily Attendance Trend (for specific date only)
 const getDailyAttendanceTrend = async (req, res) => {
   try {
-    const { from, to } = req.query;
+    const { date } = req.query;
 
-    let query = `
-     SELECT 
-  s.class,
-  s.student_id,
-  s.name,
-  s.roll_number,
-  DATE(a.timestamp) AS date,
-  a.status,
-  (
-    SELECT 
-      ROUND(
-        SUM(CASE WHEN a2.status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 
-        2
-      )
-    FROM attendance a2
-    WHERE a2.student_id = s.student_id
-      AND DATE(a2.timestamp) <= DATE(a.timestamp)
-  ) AS cumulative_attendance_percentage
-FROM attendance a
-JOIN students s ON s.student_id = a.student_id
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required as query parameter: ?date=YYYY-MM-DD' });
+    }
+
+    const query = `
+      SELECT 
+        s.class,
+        s.student_id,
+        s.name,
+        s.roll_number,
+        DATE(a.timestamp) AS date,
+        TO_CHAR(a.timestamp, 'HH24:MI:SS') AS mark_time,
+        a.status,
+        (
+          SELECT 
+            ROUND(
+              SUM(CASE WHEN a2.status = 'Present' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 
+              2
+            )
+          FROM attendance a2
+          WHERE a2.student_id = s.student_id
+            AND DATE(a2.timestamp) <= DATE(a.timestamp)
+        ) AS cumulative_attendance_percentage
+      FROM attendance a
+      JOIN students s ON s.student_id = a.student_id
+      WHERE DATE(a.timestamp) = $1
+      ORDER BY s.roll_number ASC
     `;
 
-    const filters = [];
-    const values = [];
-
-    if (from) {
-      values.push(from);
-      filters.push(`a.timestamp >= $${values.length}`);
-    }
-
-    if (to) {
-      values.push(to);
-      filters.push(`a.timestamp <= $${values.length}`);
-    }
-
-    if (filters.length > 0) {
-      query += ' WHERE ' + filters.join(' AND ');
-    }
-
-    query += `
-      ORDER BY date ASC, s.class ASC, s.roll_number ASC
-    `;
-
-    const result = await pool.query(query, values);
+    const result = await pool.query(query, [date]);
 
     res.status(200).json({
       daily_attendance: result.rows,
@@ -234,6 +249,8 @@ JOIN students s ON s.student_id = a.student_id
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
 
 
 
@@ -258,4 +275,39 @@ const getStudentsWithoutFingerprint = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-module.exports = { getOverview,getTopAbsentees,getAttendancePercentage,getStudentsWithoutFingerprint,getDailyAttendanceTrend};
+
+
+const getPresentStudentsByDate = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required as query parameter: ?date=YYYY-MM-DD' });
+    }
+
+    const result = await pool.query(
+      `SELECT 
+         s.student_id,
+         s.name,
+         s.roll_number,
+         s.class,
+         a.timestamp,
+         a.status
+       FROM attendance a
+       JOIN students s ON a.student_id = s.student_id
+       WHERE a.status = 'Present'
+         AND DATE(a.timestamp) = $1
+       ORDER BY s.class, s.roll_number`,
+      [date]
+    );
+
+    res.status(200).json({
+      date,
+      present_students: result.rows,
+    });
+  } catch (error) {
+    console.error('Error fetching present students:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+module.exports = { getOverview,getTopAbsentees,getAttendancePercentage,getStudentsWithoutFingerprint,getDailyAttendanceTrend,getTodayAbsentees,getPresentStudentsByDate};

@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getOverview,getTopAbsentees,getAttendancePercentage,getDailyAttendanceTrend, getStudentsWithoutFingerprint } = require('../controllers/statsController');
+const { getOverview,getTopAbsentees,getAttendancePercentage,getDailyAttendanceTrend, getStudentsWithoutFingerprint, getTodayAbsentees,getPresentStudentsByDate} = require('../controllers/statsController');
 // Dashboard overview
 router.get('/overview', getOverview);
+
+router.get('/absentees', getTodayAbsentees);
+
 
 // // Top absentees
  router.get('/top-absentees',getTopAbsentees);
@@ -16,6 +19,8 @@ router.get('/overview', getOverview);
 
 // // Students without fingerprint
  router.get('/students-without-fingerprint',getStudentsWithoutFingerprint);
+
+ router.get('/present', getPresentStudentsByDate);
 
 
  module.exports = router;
