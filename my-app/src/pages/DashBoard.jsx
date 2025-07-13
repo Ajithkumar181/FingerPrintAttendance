@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import StatsCard from "../components/StatsCard";
 import AttendancePieChart from '../components/AttendancePieChart';
-import { fetchDashboardOverview,fetchTodayAbsentees  } from "../services/statusService";
+import { fetchDashboardOverview,fetchTodayAbsentees,fetchPresentStudentsByDate  } from "../services/statusService";
 import AbsenteesList from '../components/AbsenteesList';
+import PresentStudentsModal from '../components/PresentStudentsModal'
 
 const Dashboard = () => {
   const [overview, setOverview] = useState(null);
@@ -11,6 +12,9 @@ const Dashboard = () => {
   const [error, setError] = useState(false);
   const [absenteesList, setAbsenteesList] = useState([]);
   const [showAbsentees, setShowAbsentees] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [presentStudents, setPresentStudents] = useState([]);
 
   useEffect(() => {
     const loadOverview = async () => {
@@ -28,6 +32,20 @@ const Dashboard = () => {
 
     loadOverview();
   }, []);
+
+  const handlePresentClick = async () => {
+    try {
+       const today = new Date().toISOString().split('T')[0];
+      const data = await fetchPresentStudentsByDate(today);
+      setPresentStudents(data.present_students|| []);
+      // Optional: open a modal or navigate to a detail view
+       setIsModalOpen(true); // open modal
+       console.log(data.present_students);
+    } catch (error) {
+      console.error('Failed to fetch present students:', error);
+      alert('Failed to load present students.');
+    }
+  };
 
   const handleAbsentClick = async () => {
     try {
@@ -62,10 +80,16 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatsCard title="🎓 Total Students" value={total_students} />
         <StatsCard title="🧬 Fingerprints Enrolled" value={total_fingerprints} />
-        <StatsCard title="✅ Present Today" value={attendance_today.present} />
+        <StatsCard title="✅ Present Today" value={attendance_today.present} onClick={handlePresentClick} />
         <StatsCard title="❌ Absent Today" value={attendance_today.absent} onClick={handleAbsentClick} />
         <StatsCard title="📈 Avg Attendance %" value={`${average_attendance_percentage}%`} />
       </div>
+      <PresentStudentsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        students={presentStudents}
+      />
+
 
       {/* Absentees List (today) */}
       {showAbsentees && <AbsenteesList absentees={absenteesList} />}

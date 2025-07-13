@@ -3,10 +3,10 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 
 const navLinks = [
   { label: "Dashboard", icon: "📋", path: "/" },
-  { label: "Students", icon: "🎓", path: "/dashboard" },
-  { label: "Attendance", icon: "🕓", path: "/dashboard" },
-  { label: "Summary", icon: "📈", path: "/dashboard" },
-  { label: "Export CSV", icon: "📤", path: "/dashboard" },
+  // { label: "Students", icon: "🎓", path: "/dashboard" },
+  { label: "Attendance", icon: "🕓", path: "/attendance" },
+  // { label: "Summary", icon: "📈", path: "/dashboard" },
+  // { label: "Export CSV", icon: "📤", path: "/dashboard" },
 ];
 
 const DashboardLayout = () => {
